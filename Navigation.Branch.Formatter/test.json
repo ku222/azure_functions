@@ -1,0 +1,187 @@
+{
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "type": "AdaptiveCard",
+    "version": "1.2",
+    "body": [
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "Nearby",
+                    "spacing": "large",
+                    "separator": "True"
+                },
+                {
+                    "type": "ColumnSet",
+                    "columns": [
+                        {
+                            "type": "Column",
+                            "width": 2,
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "BANK OF LINGFIELD BRANCH"
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "SOME BANK YO",
+                                    "weight": "Bolder",
+                                    "size": "ExtraLarge",
+                                    "spacing": "None"
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "4.2 ★★★☆ (93) · $$$Dolla",
+                                    "isSubtle": true,
+                                    "spacing": "None"
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "**Matt H. said** \"I'm compelled to give this place 5 stars due to the number of times I've chosen to bank here this past year!\"",
+                                    "size": "Small",
+                                    "wrap": true
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Column",
+                            "width": 1,
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": "https://www.financialtechnologyafrica.com/wp-content/uploads/2019/06/building-with-bank-on-front.jpg",
+                                    "size": "auto",
+                                    "altText": "Seated guest drinking a cup of coffee"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "Nearby",
+                    "spacing": "large",
+                    "separator": "True"
+                },
+                {
+                    "type": "ColumnSet",
+                    "columns": [
+                        {
+                            "type": "Column",
+                            "width": 2,
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "BANK OF LINGFIELD BRANCH"
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "SOME BANK YO",
+                                    "weight": "Bolder",
+                                    "size": "ExtraLarge",
+                                    "spacing": "None"
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "4.2 ★★★☆ (93) · $$$Dolla",
+                                    "isSubtle": true,
+                                    "spacing": "None"
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "**Matt H. said** \"I'm compelled to give this place 5 stars due to the number of times I've chosen to bank here this past year!\"",
+                                    "size": "Small",
+                                    "wrap": true
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Column",
+                            "width": 1,
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": "https://www.financialtechnologyafrica.com/wp-content/uploads/2019/06/building-with-bank-on-front.jpg",
+                                    "size": "auto",
+                                    "altText": "Seated guest drinking a cup of coffee"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Action.ShowCard",
+            "title": "Show Available Appointments",
+            "card": {
+                "type": "AdaptiveCard",
+                "body": [
+                    {
+                        "type": "ColumnSet",
+                        "style": "emphasis",
+                        "columns": [
+                            {
+                                "type": "Column",
+                                "style": "emphasis",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 1"
+                                    }
+                                ],
+                                "bleed": true,
+                                "width": "stretch"
+                            },
+                            {
+                                "type": "Column",
+                                "style": "emphasis",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 2"
+                                    }
+                                ],
+                                "width": "stretch"
+                            },
+                            {
+                                "type": "Column",
+                                "style": "emphasis",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 3"
+                                    }
+                                ],
+                                "width": "stretch"
+                            },
+                            {
+                                "type": "Column",
+                                "width": "stretch",
+                                "items": [
+                                    {
+                                        "type": "ActionSet",
+                                        "actions": [
+                                            {
+                                                "type": "Action.Submit",
+                                                "title": "Book this appointment!"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Action.OpenUrl",
+            "title": "Show me on a map!",
+            "url": "https://adaptivecards.io"
+        }
+    ]
+}
