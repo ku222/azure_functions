@@ -84,7 +84,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
             c = 2 * atan2(sqrt(a), sqrt(1 - a))
             distance = R * c
-            self.distance = distance
+            self.distance = round(distance*0.621371, 2) # convert to miles
                 
     class Appointment:
         def __init__(self, start_time, end_time):
@@ -125,7 +125,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         card = {
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "type": "AdaptiveCard",
-            "version": "1.2",
+            "version": "1.0",
             "body": [
                 {
                     "type": "Container",
@@ -142,7 +142,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             # Header + Separator
             header = {
                 "type": "TextBlock",
-                "text": f"Nearby {i}",
+                "text": f"{bank.distance} miles away",
                 "spacing": "large",
                 "separator": "True"
             }
@@ -200,7 +200,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 for _ in range(1):
                     column_width_1['items'].append({
                         "type": "Image",
-                        "url": "https://www.financialtechnologyafrica.com/wp-content/uploads/2019/06/building-with-bank-on-front.jpg",
+                        "url": "https://s17026.pcdn.co/wp-content/uploads/sites/9/2018/08/Business-bank-account-e1534519443766.jpeg",
                         "size": "auto",
                         "altText": "Seated guest drinking a cup of coffee"
                         })
@@ -255,11 +255,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": f"Appointment Slot {j}"
+                            "text": f"Appointment {j+1}"
                         }
                     ],
                     "bleed": "true",
-                    "width": "stretch"
+                    "width": "auto"
                 })
                 
                 # Add start time label
@@ -269,10 +269,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": f"Start Time: {appointment.start_time}"
+                            "text": f"{appointment.start_time}"
                         }
                     ],
-                    "width": "stretch"
+                    "width": "auto"
                 })
                 
                 # Add end time label
@@ -282,23 +282,23 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": f"End Time: {appointment.end_time}"
+                            "text": f"{appointment.end_time}"
                         }
                     ],
-                    "width": "stretch"
+                    "width": "auto"
                 })
                 
                 # Add appointment booking button
                 showcard_column_set_columns.append({
                     "type": "Column",
-                    "width": "stretch",
+                    "width": "auto",
                     "items": [
                         {
                             "type": "ActionSet",
                             "actions": [
                                 {
                                     "type": "Action.Submit",
-                                    "title": "Book this appointment!"
+                                    "title": "Book This!"
                                 }
                             ]
                         }
