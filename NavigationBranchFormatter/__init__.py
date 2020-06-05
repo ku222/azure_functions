@@ -4,6 +4,7 @@ from math import sin, cos, sqrt, atan2, radians
 import requests
 import pandas as pd
 import json
+import io
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     '''
@@ -94,7 +95,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     ## Get closest 3 banks
     ###############################################################
     def get_closest_3_banks_list(lat1, lon1):
-        df = pd.read_csv('branch.txt', sep='\t')
+        url = 'https://raw.githubusercontent.com/ku222/azure_functions/master/NavigationBranchFormatter/branch.txt' 
+        urlData = requests.get(url).content
+        df = pd.read_csv(io.StringIO(urlData.decode('utf-8')), sep='\t')
         banks_list = []
         for (i, row) in df.iterrows():
             # Create bank
@@ -323,6 +326,5 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     card = create_card(banks_list)
     
     # Return OK http response
-    return func.HttpResponse(body='hi', status_code=200)
-
+    return func.HttpResponse(body=json.dumps(card), status_code=200)
 
