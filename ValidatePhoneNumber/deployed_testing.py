@@ -9,3 +9,6 @@ json_payload = {'number': ' 42- 32--53-33//13'}
 response = requests.post(url=DEPLOYED_URL, json=json_payload)
 response.text
 
+
+
+# %%

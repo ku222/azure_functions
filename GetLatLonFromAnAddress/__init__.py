@@ -62,7 +62,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     response = query_azure_maps(query)
     (lat, lon) = extract_coordinates(response)
     
-    output = f"{lat},{lon}"
+    output = f"{lat}, {lon}"
     
     # Return OK http response
     return func.HttpResponse(body=output, status_code=200)

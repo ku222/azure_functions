@@ -10,6 +10,4 @@ response = requests.post(url=DEPLOYED_URL, json=json_payload)
 response.text
 
 
-
-
 # %%
