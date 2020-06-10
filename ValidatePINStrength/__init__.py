@@ -1,6 +1,6 @@
 import logging
 import azure.functions as func
-
+import re
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     '''
@@ -34,7 +34,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # final check that we have some value
     if not PIN:
         return func.HttpResponse(body='No PIN Provided', status_code=400)
-
+    
     # PIN strength function
     def rate_my_PIN(PIN):
         # pure ascending/descending numbers check
@@ -53,7 +53,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         elif penalty_count <= 3:
             rating = 'Strong'
         elif penalty_count < 5:
-            rating = 'Medium'
+            rating = 'Medium Strength'
         else:
             rating = 'Weak'
         return rating
