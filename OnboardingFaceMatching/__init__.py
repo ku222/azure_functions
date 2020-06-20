@@ -6,6 +6,9 @@ import requests
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     
+    # Log to Azure function apps online
+    logging.info('Python HTTP trigger function processed a request.')
+    
     # Try retrieve params
     req_body = req.get_json()
     user_real_face = req_body.get('user_face')
@@ -20,19 +23,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         headers = {"Content-Type": "application/json", "Ocp-Apim-Subscription-Key": api_key}
         body = {"url": image_url}
         response = requests.post(url=url, headers=headers, json=body)
-        if response.status_code != 200:
-            return func.HttpResponse(body=response.text, status_code=400)
-        input_face_id = json.loads(response.text)[0].get('faceId')
+        try:
+            input_face_id = json.loads(response.text)[0].get('faceId')
+        except IndexError:
+            return None
         return input_face_id
 
-    # Get face ids
-    user_real_face_faceid = create_faceid(user_real_face)
-    user_id_doc_faceid = create_faceid(user_id)
-
-    # Log to Azure function apps online
-    logging.info('Python HTTP trigger function processed a request.')
-
     def find_similar(user_real_face_faceid, user_id_doc_faceid, endpoint=endpoint, api_key=api_key):
+        result = 0
         url = f"{endpoint}/face/v1.0/findsimilars"
         headers = {"Content-Type": "application/json", "Ocp-Apim-Subscription-Key": api_key}
         body = {
@@ -42,14 +40,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "mode": "matchPerson"
             }
         response = requests.post(url=url, headers=headers, json=body)
-        if response.status_code != 200:
-            return func.HttpResponse(body=response.text, status_code=400)
         jsonified = json.loads(response.text)
         if jsonified:
-            return str(jsonified[0].get('confidence'))
-        else:
-            return str(0)
-
+            result = str(jsonified[0].get('confidence'))
+        return result
+    
+    # Get face ids
+    user_real_face_faceid = create_faceid(user_real_face)
+    user_id_doc_faceid = create_faceid(user_id)
+    
+    if not user_real_face_faceid or not user_id_doc_faceid:
+        return func.HttpResponse(body=str(0), status_code=200)
+    
     # Get similarity confidence
     result = find_similar(user_real_face_faceid, user_id_doc_faceid)
     return func.HttpResponse(body=result, status_code=200)

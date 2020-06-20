@@ -26,15 +26,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(body='One or more parameters missing', status_code=400)
     
     def create_card(prompt, placeholder, submit_title):
-        card = AdaptiveCard()
+        card = AdaptiveCard(backgroundImage="https://lh3.googleusercontent.com/proxy/1OKoCOxXegrIjs7o4lM5pXe60d-cuRvdxb9skqw3Fw6G7-TYokRImgR_bh-fj1_SsWkYzxIlHD0hxEs1dRa5dfAhyvb3jSI0LCKJ_UeCxH0YTOzn12sU_YuL3g8")
         
         card.add([
             "items",
-            TextBlock(text=prompt, weight="Bolder", separator="true"),
-            InputText(ID="input", placeholder=placeholder),
-            
+            Container(backgroundImage="https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"),
+                TextBlock(text=prompt, weight="Bolder", separator="true"),
+                InputText(ID="input", placeholder=placeholder),
+                "<",
+        
             "Actions",
-            ActionSubmit(title=submit_title)
+            ActionSubmit(title=submit_title, style="positive")
         ])
                         
         return card.to_json()

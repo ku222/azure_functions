@@ -37,28 +37,23 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if not number_str:
         return func.HttpResponse(body='No Number Provided', status_code=400)
 
-    # extract numbers via regex
-    numbers_only = re.sub(pattern=r'[^+0-9]', repl='', string=number_str)
-
-    # check for long numbers
-    if len(numbers_only) > 12:
-        return func.HttpResponse(body='Phone Number is Too Long', status_code=400)
-
-    # extract US phone numbers of format +1 NXX-NXX-XXXX
-    # Where N is 2-9 and X is 0-9
-    pattern = r'(\+1)?([2-9]{1}[0-9]{2})([2-9]{1}[0-9]{2})([0-9]{4})'
-    matches = re.search(pattern, numbers_only)
-
-    if not matches:
-        return func.HttpResponse(body='Invalid Phone Number', status_code=400)
-
-    # unpack regex match groups
-    (country_digits, area_digits, exchange_digits, personal_digits) = matches.groups()
+    def validate_phonenumber(phone_number):
+        numbers_only = re.sub(pattern=r'[^+0-9]', repl='', string=phone_number)
+        if "+" in numbers_only:
+            if len(numbers_only) > 12:
+                return False
+        else:
+            if len(numbers_only) > 10:
+                return False
+        pattern = r'(\+1)?([2-9]{1}[0-9]{2})([2-9]{1}[0-9]{2})([0-9]{4})'
+        matches = re.search(pattern, numbers_only)
+        if matches:
+            (country_digits, area_digits, exchange_digits, personal_digits) = matches.groups()
+            return f"{area_digits}-{exchange_digits}-{personal_digits}"
+        return False
     
-    # add country code if not provided
-    if not country_digits:
-        country_digits = '+1'
-    
-    # format result before returning
-    result = f"{country_digits} {area_digits}-{exchange_digits}-{personal_digits}"
+    result = validate_phonenumber(number_str)
+    if not result:
+        func.HttpResponse(body="that phone number was not of the correct format", status_code=400)
+        
     return func.HttpResponse(body=result, status_code=200)
