@@ -37,14 +37,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
     # Serialize our data into a python dict
     data = json.loads(data)
-        
+    
+    # Make up some dummy transaction data
+    headers = ['ID', 'Amount', 'Receiver', 'Date', 'Suspicious']
+    table = [['TRN-349824', '$400.50', 'Walmart', '29-05-2020'],
+            ['TRN-334244', '$50.35', 'Delta Airlines', '01-06-2020'],
+            ['TRN-503134', '$60.50', 'Smoothie King', '03-06-2020']]
+    
     def display_cards(data):
         adaptive = AdaptiveCard()
         cards = data["ResultSets"]["Table1"]
 
         for card in cards:
             font_color = "default"
-            backgroundImage_url = "https://i.dlpng.com/static/png/6774669_preview.png" if card["Status"]=="Frozen" else "https://www.publicdomainpictures.net/pictures/30000/velka/plain-white-background.jpg"
+            backgroundImage_url = "https://i.dlpng.com/static/png/6774669_preview.png" if card["Status"]=="Frozen" else ""
             
             adaptive.add([
                 "items----",
@@ -62,18 +68,59 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                             "<",
                         "<",
                         
-                    ActionSet(),
-                        "actions ----",
-                        ActionShowCard(title="Manage Card"),
-                            ActionSubmit(title="Reset PIN", data={"card": f"{card['card_id']}", "action": "PIN"}),
-                            ActionSubmit(title="Defrost Card" if card["Status"]=="Frozen" else "Freeze Card",
-                                        data={
-                                            "card": f"{card['card_id']}",
-                                            "action": f"{'unfreeze' if card['Status']=='Frozen' else 'freeze'}"
-                                            }
-                                        ),
-            "^"
+                        ActionSet(),
+                            "actions ----",
+                            ActionShowCard(title="Manage Card"),
+                                ActionSubmit(title="Reset PIN", data={"card": f"{card['card_id']}", "action": "PIN"}, style="positive"),
+                                ActionSubmit(title="Defrost Card" if card["Status"]=="Frozen" else "Freeze Card",
+                                            data={
+                                                "card": f"{card['card_id']}",
+                                                "action": f"{'unfreeze' if card['Status']=='Frozen' else 'freeze'}"
+                                                }
+                                            ,
+                                            style="positive"),
+                                            "<",
+                            ActionShowCard(title="View Transactions"),
+                                "items ----"
             ])
+            
+            # Now to add transactions
+            adaptive.add(ColumnSet())
+            for header in headers:
+                adaptive.add([
+                    Column(),
+                        TextBlock(text=header, horizontalAlignment="center", weight="Bolder"),
+                        "<"
+                ])
+            
+            # up from columnset back to showcard body
+            adaptive.up_one_level()
+            # create saved pointer level
+            showcard_body_level = adaptive.save_level()
+            
+            # Add transactions
+            for transaction in table:
+                adaptive.add(ColumnSet())
+                
+                # Add elements
+                for element in transaction:
+                    adaptive.add([
+                        Column(),
+                            TextBlock(text=element, horizontalAlignment="center"),
+                            "<"
+                    ])
+                
+                # Before moving to the next row, add a "Flag" button
+                adaptive.add(Column())
+                adaptive.add(ActionSet())
+                flag_url = "https://pngimage.net/wp-content/uploads/2018/06/red-flag-png-5.png"
+                transaction_id = transaction[0]
+                submit_data = {"ID": transaction_id} # data to submit to our hosting interface
+                adaptive.add(ActionSubmit(iconUrl=flag_url, data=submit_data), is_action=True)
+                adaptive.load_level(showcard_body_level) # Go back to the top level, ready to add our next row
+            
+            # Go back up to main body
+            adaptive.back_to_top()
             
         return adaptive.to_json()
     

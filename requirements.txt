@@ -1,4 +1,4 @@
 azure-functions
 requests==2.23.0
 pandas==1.0.4
-adaptivecardbuilder==0.0.5
+adaptivecardbuilder==0.0.6

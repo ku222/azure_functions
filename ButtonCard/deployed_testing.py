@@ -159,7 +159,3 @@ card.to_json()
 
 
 #%%
-
-
-t = TextBlock(text="some text")
-print(t)

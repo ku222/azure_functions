@@ -174,7 +174,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 # Add the "Book This!" button, in the final column
                 card.add(Column(style="emphasis", verticalContentAlignment="Center"))
                 card.add(ActionSet())
-                card.add(ActionSubmit(title="Book this!", data={"Appt": f"({appointment.start_time}, {appointment.end_time})"}), is_action=True)
+                card.add(ActionSubmit(title="Book!", data={"Appt": f"({appointment.start_time}, {appointment.end_time})"}), is_action=True)
                 card.load_level(action_showcard_level) # back to showcard's body
             
             # Go back to the main body of the card, ready for next branch

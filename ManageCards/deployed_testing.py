@@ -28,6 +28,9 @@ data = {
     "Pin_Code": 7650,
     "Status": "Frozen"
   },
+]
+}
+}
   {
     "card_id": "V00000002",
     "disp_id": "D00000019",
