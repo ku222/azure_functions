@@ -36,18 +36,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         query = f"UPDATE [dbo].[Profile] SET balance = {new_balance} WHERE account_id = '{account_id}'"
         query_database(query)
         # Now record a transaction
-        date_today = "CURRENT_TIMESTAMP"
+        date_today = str(date.today())
         trn_no = 'PIG' + ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890', k=10))
         # Add into normal transaction table
-        query = f"INSERT INTO [dbo].[Transaction] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance})"
+        query = f"INSERT INTO [dbo].[Transaction] VALUES ('{trn_no}', '{account_id}', '{date_today}', '{transaction_details}', NULL, '{date_today}', {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance})"
         query_database(query)
         # Add into category transaction table
-        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE')"
+        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', '{date_today}', '{transaction_details}', NULL, '{date_today}', {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE')"
         query_database(query)
         
     def insert_piggybank(account_id, piggybank_name, amount):
-        date_today = "CURRENT_TIMESTAMP"
-        query = f"INSERT INTO [dbo].[Piggybank] VALUES ('{account_id}', '{piggybank_name}', {amount}, {date_today}, {0})"
+        date_today = str(date.today())
+        query = f"INSERT INTO [dbo].[Piggybank] VALUES ('{account_id}', '{piggybank_name}', {amount}, '{date_today}', {0})"
         # execute
         query_database(query)
    
