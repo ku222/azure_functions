@@ -40,12 +40,12 @@ FROM (
 
 query = query.replace('\n', ' ')
 result = query_database(query)
-result["ResultSets"]["Table1"][0]["average_spending"]
+monthly_average = result["ResultSets"]["Table1"][0]["average_spending"]
 
 #%%
+
 blue_background = "https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png"
 whistle_icon = "https://i.ibb.co/vH4BM82/referee.png"
-
 
 card = AdaptiveCard(backgroundImage=blue_background)
 card.add([

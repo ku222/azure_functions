@@ -39,6 +39,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     ActionSet(separator="true", spacing="medium"),
                         "action",
                         ActionSubmit(title="Create", style="positive"),
+                        ActionSubmit(title="Cancel", style="destructive", data={"action": "cancel"}),
                         "<",
                     "<",
                 "item",

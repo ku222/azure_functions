@@ -23,8 +23,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # Retrieve account balance
     db_dict = query_database(f"SELECT balance from [dbo].[Profile] WHERE account_id = '{account_id}'")
     balance = db_dict['ResultSets']['Table1'][0]['balance']
+    
+    # Retrieve current monthly allowance for the current piggybank
+    db_dict = query_database(f"SELECT monthly_allowance from [dbo].[PiggyBank] WHERE account_id = '{account_id}' AND piggybank_name = '{piggybank_name}'")
+    monthly_allowance = db_dict['ResultSets']['Table1'][0]['monthly_allowance']
    
-    def create_addfunds_card(balance, piggybank_name):
+    def create_addfunds_card(balance, piggybank_name, monthly_allowance):
         blue_background = "https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png"
         piggy_icon = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Piggy_Bank_or_Savings_Flat_Icon_Vector.svg/1024px-Piggy_Bank_or_Savings_Flat_Icon_Vector.svg.png"
         coin_icon = "https://i.ibb.co/7pSTx1L/coin.png"
@@ -34,8 +38,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         # Add card elements
         card.add([
-            TextBlock(text=f"Add to your {piggybank_name} Piggy Bank", color="light", size="Large", weight="Bolder", horizontalAlignment="center"),
+            TextBlock(text=f"{piggybank_name} Piggy Bank", color="light", size="Large", weight="Bolder", horizontalAlignment="center"),
             TextBlock(text=f"Account Balance: ${balance:,}", color="light", weight="bolder", size="medium", horizontalAlignment="center"),
+            TextBlock(text=f"Current Monthly Allowance: ${monthly_allowance:,}", color="light", weight="bolder", size="medium", horizontalAlignment="center"),
             ColumnSet(),
                 Column(),
                     Container(spacing="small"), "<",
@@ -47,7 +52,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     "<",
                 "<",
             
-            TextBlock(text="Type in an amount to add", horizontalAlignment="center", color="light"),
+            TextBlock(text="Set new monthly allowance", horizontalAlignment="center", color="light"),
             ColumnSet(),
                 Column(width=1),
                     TextBlock(text="$", color="light", size="Large", verticalAlignment="center", horizontalAlignment="right"),
@@ -56,7 +61,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     InputNumber(ID="amount", placeholder="50.00"),
                     ActionSet(separator="true", spacing="medium"),
                         "action",
-                        ActionSubmit(title="Add Funds!", style="positive"),
+                        ActionSubmit(title="Set New Allowance!", style="positive"),
                         ActionSubmit(title="Cancel", style="destructive", data={"action": "cancel"}),
                         "<",
                     "<",
@@ -69,6 +74,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return card.to_json()
 
     # Create card
-    result = create_addfunds_card(balance, piggybank_name)
+    result = create_addfunds_card(balance, piggybank_name, monthly_allowance)
     return func.HttpResponse(body=result, status_code=200)
 

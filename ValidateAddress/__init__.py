@@ -102,6 +102,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 ])
                 card.load_level(container_level)
         
+        card.back_to_top()
+        card.add(ActionSubmit(title="None of These Addresses are Mine", data={"action": "no_match"}, style="positive"), is_action=True)
+        
         if valid_counter == 0:
             return False
         return card.to_json()

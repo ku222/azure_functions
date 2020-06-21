@@ -88,12 +88,12 @@ def main(address_dict):
         '''Extract a nicely formatted address from the Azure maps response'''
         def address_result_to_dict(address_result):
             address = address_result.get('address')
-            return {'Street Number': address.get('streetNumber'),
-                    'Street Name': address.get('streetName'),
-                    'Town/City': address.get('municipality'),
-                    'State': address.get('countrySubdivision'),
-                    'Zip Code': address.get('postalCode'),
-                    'Free Form': address.get('freeformAddress')}
+            return {'street_number': address.get('streetNumber'),
+                    'street_name': address.get('streetName'),
+                    'city': address.get('municipality'),
+                    'state': address.get('countrySubdivision'),
+                    'zipcode': address.get('postalCode'),
+                    'free_form': address.get('freeformAddress')}
         
         all_address_results = [dict_ for dict_ in response.json()['results']]
         point_addresses = [dict_ for dict_ in response.json()['results'] if dict_.get('type') == 'Point Address']
@@ -102,29 +102,35 @@ def main(address_dict):
         return [address_result_to_dict(address_result) for address_result in all_address_results]
     
     def create_address_selection_card(array_of_address_dicts):
-        card = AdaptiveCard(backgroundImage="https://wallpaperplay.com/walls/full/5/9/5/37696.jpg")
+        card = AdaptiveCard(backgroundImage="https://lh3.googleusercontent.com/proxy/1OKoCOxXegrIjs7o4lM5pXe60d-cuRvdxb9skqw3Fw6G7-TYokRImgR_bh-fj1_SsWkYzxIlHD0hxEs1dRa5dfAhyvb3jSI0LCKJ_UeCxH0YTOzn12sU_YuL3g8")
         card.add(Container(backgroundImage="https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"))
         container_level = card.save_level()
         valid_counter = 0
         for address_dict in array_of_address_dicts:
-            if address_dict['Street Number'] != None:
+            if address_dict['street_number'] != None:
                 valid_counter += 1
                 card.add([
                     "items---",
                     ColumnSet(separator="true", spacing="medium"),
-                        Column(width=2, verticalContentAlignment="center"),
-                            TextBlock(text=address_dict['Free Form'], wrap="true"),
+                        Column(width=7, verticalContentAlignment="center"),
+                            TextBlock(text=address_dict['free_form'], wrap="true"),
                             "<",
-                        Column(width=1, verticalContentAlignment="center"),
+                        Column(width=1),
+                            "<",
+                        Column(width=2, verticalContentAlignment="center"),
                             ActionSet(),
                                 "action---",
-                                ActionSubmit(title="Correct", style="positive", data=address_dict),
+                                ActionSubmit(title=u'\u2714', style="positive", data=address_dict),
                 ])
                 card.load_level(container_level)
         
+        card.back_to_top()
+        card.add(ActionSubmit(title="None of These Addresses are Mine"), is_action=True)
+        
         if valid_counter == 0:
-            return func.HttpResponse(body="no potentially matching addresses were found", status_code=400)
+            return False
         return card.to_json()
+
 
     ### Call our functions above sequentially
     fully_validate_input(address_dict)

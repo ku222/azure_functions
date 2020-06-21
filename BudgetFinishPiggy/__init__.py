@@ -4,6 +4,7 @@ import json
 from adaptivecardbuilder import *
 import requests
 from datetime import date
+import random
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     
@@ -22,6 +23,28 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         response = requests.post(url=logic_app_url, json=body)
         return json.loads(response.content)
 
+    def update_balance_and_transactions(account_id, amount, transaction_details, operator="-"):
+        # Retrieve account balance
+        db_dict = query_database(f"SELECT balance from [dbo].[Profile] WHERE account_id = '{account_id}'")
+        balance = db_dict['ResultSets']['Table1'][0]['balance']
+        # Calculate new balance
+        if operator == "-":
+            new_balance = balance - amount
+        elif operator == "+":
+            new_balance = balance + amount
+        # First update balance in profile
+        query = f"UPDATE [dbo].[Profile] SET balance = {new_balance} WHERE account_id = '{account_id}'"
+        query_database(query)
+        # Now record a transaction
+        date_today = str(date.today())
+        trn_no = 'PIG' + ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890', k=10))
+        # Add into normal transaction table
+        query = f"INSERT INTO [dbo].[Transaction] VALUES ('{trn_no}', '{account_id}', '{date_today}', '{transaction_details}', NULL, '{date_today}', {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance})"
+        query_database(query)
+        # Add into category transaction table
+        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', '{date_today}', '{transaction_details}', NULL, '{date_today}', {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE')"
+        query_database(query)
+        
     def insert_piggybank(account_id, piggybank_name, amount):
         date_today = str(date.today())
         query = f"INSERT INTO [dbo].[Piggybank] VALUES ('{account_id}', '{piggybank_name}', {amount}, '{date_today}', {0})"
@@ -67,6 +90,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # Insert new piggybank into database
     insert_piggybank(account_id, piggybank_name, amount)
+
+    # Update necessary tables to reflect this - operator is "-" because we're subtracting from their account
+    update_balance_and_transactions(account_id=account_id, amount=float(amount), transaction_details=f"New Piggy Bank {piggybank_name}", operator="-")
     
     # Create card
     result = create_finish_card(piggybank_name, amount)
