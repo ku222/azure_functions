@@ -53,7 +53,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         profile_dict = names_dict
         
         # Initialize card
-        card = AdaptiveCard()
+        card = AdaptiveCard(backgroundImage="https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png")
+        card.add(Container(backgroundImage="https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"))
+        container_level = card.save_level()
         for (raw_field_name, current_value) in profile_dict.items():
             # prettify name
             pretty_name = DB_TO_CARD.get(raw_field_name)
@@ -94,12 +96,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 card.add(InputText(ID=raw_field_name, placeholder=f"New {pretty_name}"))
 
             # Return to main body again
-            card.back_to_top()
+            card.load_level(container_level)
             
         # Finish by adding global submit button
-        card.add(Container(spacing="ExtraLarge", separator="true"))
+        card.back_to_top()
+        card.add(Container(spacing="medium", separator="true"))
         card.up_one_level()
-        card.add(ActionSubmit(title="Submit All"), is_action=True)
+        card.add(ActionSubmit(title="Submit All", style="positive"), is_action=True)
         
         return card.to_json()
     

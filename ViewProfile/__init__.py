@@ -54,7 +54,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         profile_dict = names_dict
         
         # Initialize card
-        card = AdaptiveCard()
+        card = AdaptiveCard(backgroundImage="https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png")
+        card.add(Container(backgroundImage="https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"))
+        container_level = card.save_level()
         for (raw_field_name, current_value) in profile_dict.items():
             # prettify name
             pretty_name = DB_TO_CARD.get(raw_field_name)
@@ -75,17 +77,15 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                             TextBlock(text=pretty_name, weight="Bolder"),
                             "<",
                         Column(),
-                            TextBlock(text=current_value, isSubtle="true"),
-                "^"
+                            TextBlock(text=current_value, isSubtle="true", wrap="true"),
             ])
-
-            # Return to main body again
-            card.back_to_top()
-            
+            card.load_level(container_level)
+        
         # Finish by adding update action button
-        card.add(Container(spacing="ExtraLarge", separator="true"))
+        card.back_to_top()
+        card.add(Container(spacing="medium", separator="true"))
         card.up_one_level()
-        card.add(ActionSubmit(title="Update Profile", data={"action": "update"}), is_action=True)
+        card.add(ActionSubmit(title="Update Profile", style="positive", data={"action": "update"}), is_action=True)
         
         return card.to_json()
 

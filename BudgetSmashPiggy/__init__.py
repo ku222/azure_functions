@@ -15,13 +15,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     req_body = req.get_json()
     account_id = req_body.get('account_id')
     piggybank_name = req_body.get('piggybank_name')
-    amount = req_body.get('amount')
    
     def query_database(query):
         logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
         body = {"intent": "query", "params": [query]}
         response = requests.post(url=logic_app_url, json=body)
         return json.loads(response.content)
+    
+    # Retrieve amount and created date of the piggybank in question from the piggybank table
+    db_dict = query_database(f"SELECT amount, created_date from [dbo].[PiggyBank] WHERE account_id = '{account_id}' AND piggybank_name = '{piggybank_name}'")
+    amount = db_dict['ResultSets']['Table1'][0]['amount']
+    created_date = db_dict['ResultSets']['Table1'][0]['created_date'].split('T')[0]
+    date_today = str(date.today())
 
     def update_balance_and_transactions(account_id, amount, transaction_details, operator="-"):
         # Retrieve account balance
@@ -36,65 +41,52 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         query = f"UPDATE [dbo].[Profile] SET balance = {new_balance} WHERE account_id = '{account_id}'"
         query_database(query)
         # Now record a transaction
-        date_today = str(date.today())
+        date_today = "CURRENT_TIMESTAMP"
         trn_no = 'PIG' + ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890', k=10))
         # Add into normal transaction table
-        query = f"INSERT INTO [dbo].[Transaction] VALUES ('{trn_no}', '{account_id}', '{date_today}', '{transaction_details}', NULL, '{date_today}', {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance})"
+        query = f"INSERT INTO [dbo].[Transaction] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance})"
         query_database(query)
         # Add into category transaction table
-        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', '{date_today}', '{transaction_details}', NULL, '{date_today}', {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE')"
+        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE')"
         query_database(query)
         
-    def insert_piggybank(account_id, piggybank_name, amount):
-        date_today = str(date.today())
-        query = f"INSERT INTO [dbo].[Piggybank] VALUES ('{account_id}', '{piggybank_name}', {amount}, '{date_today}', {0})"
-        # execute
+    def delete_piggybank(account_id, piggybank_name):
+        query = f"DELETE FROM [dbo].[PiggyBank] WHERE account_id = '{account_id}' AND piggybank_name = '{piggybank_name}'"
         query_database(query)
    
-    def create_finish_card(piggybank_name, amount):
+    def create_card(piggybank_name, piggybank_amount, created_date, date_today):
         blue_background = "https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png"
-        piggy_icon = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Piggy_Bank_or_Savings_Flat_Icon_Vector.svg/1024px-Piggy_Bank_or_Savings_Flat_Icon_Vector.svg.png"
+        piggy_icon = "https://i.ibb.co/sKfW8Nd/debt.png"
 
         card = AdaptiveCard(backgroundImage=blue_background)
-
         card.add([
-            "items",
-            TextBlock(text="All done!", color="light", size="Large", weight="Bolder", horizontalAlignment="center"),
-            TextBlock(text=f"Your new Piggy Bank is now set up. Happy saving!", color="light", wrap="true", size="Medium", horizontalAlignment="center"),
-            Container(spacing="medium"), "<",
-            TextBlock(text=piggybank_name, color="light", size="Large", horizontalAlignment="center"),
-            TextBlock(text=f"${float(amount):,}", color="light", size="Large", weight="Bolder", horizontalAlignment="center"),
-            Image(url=piggy_icon, height="120px", horizontalAlignment="center"),
+            TextBlock(text=f"Here lies", color="light", size="ExtraLarge", weight="Bolder", horizontalAlignment="center"),
+            TextBlock(text=f"Good Old {piggybank_name} Piggy Bank", color="light", size="Large", wrap="true", horizontalAlignment="center"),
+            TextBlock(text=f"Who Amounted to ${piggybank_amount:,}", color="light", size="Medium", wrap="true", horizontalAlignment="center"),
             
-            # Add spacing
-            Container(spacing="small"),
+            ColumnSet(separator="true", spacing="Large"),
+                Column(),
+                    TextBlock(text=f"Born", color="light", separator="true", size="Large", weight="bolder", spacing="Large", wrap="true", horizontalAlignment="center"),
+                    TextBlock(text=f"{created_date}", color="light", size="Large", wrap="true", horizontalAlignment="center"),
+                    "<",
+                Column(),
+                    TextBlock(text=f"Smashed", color="light", size="Large", weight="bolder", spacing="Large", wrap="true", horizontalAlignment="center"),
+                    TextBlock(text=f"{date_today}", color="light", size="Large", wrap="true", horizontalAlignment="center"),
+                    "<",
                 "<",
             
-            ColumnSet(),
-                Column(width=1),
-                    "<",
-                Column(width=5),
-                    Container(), "<",
-                    ActionSet(separator="true", spacing="medium"),
-                        "action",
-                        ActionSubmit(title="View all Piggy Banks", style="positive", data={"action": "view"}),
-                        ActionSubmit(title="Pay Myself an Allowance from This", style="positive", data={"action": "monthly_allowance"}),
-                        "<",
-                    "<",
-                "item",
-                Column(width=1),
-                    "<",
+            Image(url=piggy_icon, spacing="Large", height="200px", horizontalAlignment="center"),
+            
         ])
-        # Serialize
         return card.to_json()
-
-    # Insert new piggybank into database
-    insert_piggybank(account_id, piggybank_name, amount)
+    
+    # Delete piggybank from database
+    delete_piggybank(account_id=account_id, piggybank_name=piggybank_name)
 
     # Update necessary tables to reflect this - operator is "-" because we're subtracting from their account
-    update_balance_and_transactions(account_id=account_id, amount=float(amount), transaction_details=f"New Piggy Bank {piggybank_name}", operator="-")
+    update_balance_and_transactions(account_id=account_id, amount=float(amount), transaction_details=f"Smashed Piggy Bank {piggybank_name}", operator="+")
     
     # Create card
-    result = create_finish_card(piggybank_name, amount)
+    result = create_card(piggybank_name=piggybank_name, piggybank_amount=float(amount), created_date=created_date, date_today=date_today)
     return func.HttpResponse(body=result, status_code=200)
 
