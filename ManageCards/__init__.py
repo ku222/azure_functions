@@ -2,47 +2,24 @@ import logging
 import azure.functions as func
 import json
 from adaptivecardbuilder import *
+import requests
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     
     # Log to Azure function apps online
     logging.info('Python HTTP trigger function processed a request.')
 
-    # Try retrieve intent, data
-    intent = req.params.get('intent')
-    data = req.params.get('data')
+    # Try retrieve params
+    req_body = req.get_json()
+    account_id = req_body.get('account_id')
     
-    # general error handler - taken from example documentation
-    if not intent:
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            intent = req_body.get('intent')
-       
-    if not data:
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            data = req_body.get('data')
-            
-    if not intent:
-        return func.HttpResponse(body='Intent missing', status_code=400)
+    def query_database(query):
+        logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
+        body = {"intent": "query", "params": [query]}
+        response = requests.post(url=logic_app_url, json=body)
+        return json.loads(response.content)
     
-    if not data:
-        return func.HttpResponse(body='Data missing', status_code=400)
-    
-    # Serialize our data into a python dict
-    data = json.loads(data)
-    
-    # Make up some dummy transaction data
-    headers = ['ID', 'Amount', 'Receiver', 'Date', 'Suspicious']
-    table = [['TRN-349824', '$400.50', 'Walmart', '29-05-2020'],
-            ['TRN-334244', '$50.35', 'Delta Airlines', '01-06-2020'],
-            ['TRN-503134', '$60.50', 'Smoothie King', '03-06-2020']]
+    data = query_database(f"SELECT TOP 3 * FROM [dbo].[Card]")
     
     def display_cards(data):
         adaptive = AdaptiveCard()
@@ -50,7 +27,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         for card in cards:
             font_color = "default"
-            backgroundImage_url = "https://i.dlpng.com/static/png/6774669_preview.png" if card["Status"]=="Frozen" else ""
+            backgroundImage_url = "https://i.dlpng.com/static/png/6774669_preview.png" if card["Status"]=="Frozen" else "https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"
             
             adaptive.add([
                 "items----",
@@ -79,50 +56,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                                 }
                                             ,
                                             style="positive"),
-                                            "<",
-                            ActionShowCard(title="View Transactions"),
-                                "items ----"
+            "^"
             ])
             
-            # Now to add transactions
-            adaptive.add(ColumnSet())
-            for header in headers:
-                adaptive.add([
-                    Column(),
-                        TextBlock(text=header, horizontalAlignment="center", weight="Bolder"),
-                        "<"
-                ])
-            
-            # up from columnset back to showcard body
-            adaptive.up_one_level()
-            # create saved pointer level
-            showcard_body_level = adaptive.save_level()
-            
-            # Add transactions
-            for transaction in table:
-                adaptive.add(ColumnSet())
-                
-                # Add elements
-                for element in transaction:
-                    adaptive.add([
-                        Column(),
-                            TextBlock(text=element, horizontalAlignment="center"),
-                            "<"
-                    ])
-                
-                # Before moving to the next row, add a "Flag" button
-                adaptive.add(Column())
-                adaptive.add(ActionSet())
-                flag_url = "https://pngimage.net/wp-content/uploads/2018/06/red-flag-png-5.png"
-                transaction_id = transaction[0]
-                submit_data = {"ID": transaction_id} # data to submit to our hosting interface
-                adaptive.add(ActionSubmit(iconUrl=flag_url, data=submit_data), is_action=True)
-                adaptive.load_level(showcard_body_level) # Go back to the top level, ready to add our next row
-            
-            # Go back up to main body
-            adaptive.back_to_top()
-            
-        return adaptive.to_json()
+        return adaptive.to_json(version="1.1")
     
     result = display_cards(data)
     return func.HttpResponse(body=result, status_code=200)

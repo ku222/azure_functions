@@ -8,55 +8,41 @@ import io
 from adaptivecardbuilder import *
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    '''
-    Purpose:
-        Given an address,
-        will get distances to all nearby banks
-        then return the top 3 banks, distances to them,
-        opening hours, and free appointment slots,
-        all in an adaptive card
-    
-    Inputs:
-        json request with this schema:
-            {"coordinates": "4.314,-44.8865"}
-        
-    Outputs:
-        HTTP 200 and interactive adaptive card
-        HTTP 400 otherwise
-    '''
     # Log to Azure function apps online
     logging.info('Python HTTP trigger function processed a request.')
 
     ###############################################################
     ## Retrieve address
     ###############################################################
-    address = req.params.get('address')
+    req_body = req.get_json()
+    address = req_body.get('address')
     
-    # general error handler - taken from example documentation
-    if not address:
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            address = req_body.get('address')
-    
-    # final check that we have some value
-    if not address:
-        return func.HttpResponse(body='No Address Provided', status_code=400)
-
     ###############################################################
     ## Get lat+lon from address input using Azure Maps API
     ###############################################################
-    def get_lat_lon_from_address(address):
-        ## Let's call our already-deployed GetLatLonFromAnAddress function app
-        DEPLOYED_URL = 'https://cloudwars2functionapp.azurewebsites.net/api/GetLatLonFromAnAddress?code=ucwQTFn4ivV/uycR72H3o7EIoSC28cDHynS8jFmlZ8Zwuy2iuL4yaQ=='
-        json_payload = {'address': address}
-        response = requests.post(url=DEPLOYED_URL, json=json_payload)
-        coordinates = response.text
-        (lat, lon) = coordinates.split(',')
-        (lat, lon) = float(lat), float(lon)
-        return (lat, lon)
+    def query_azure_maps(_query_):
+        '''Send query to azure maps service with parameters below'''
+        _format_ = 'json'
+        _subscription_key_ = 'd5vwJomzaZQjWo1BCYXsNyMOm1QHAxZ9Ie-MkszAzrw'
+        _country_set_ = 'US'
+        url = f"https://atlas.microsoft.com/search/address/{_format_}?subscription-key={_subscription_key_}&countrySet={_country_set_}&api-version=1.0&query={_query_}"
+        response = requests.get(url=url)
+        return response
+
+    def extract_coordinates(response):
+        '''Extract the best lat+lon match from the Azure maps response'''
+        locations = [dict_ for dict_ in response.json()['results']]
+        if locations:
+            closest = locations[0]
+            position = closest.get('position')
+            (lat, lon) = position.get('lat'), position.get('lon')
+        return (float(lat), float(lon))
+        
+    def query_database(query):
+        logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
+        body = {"intent": "query", "params": [query]}
+        response = requests.post(url=logic_app_url, json=body)
+        return json.loads(response.content)
     
     ###############################################################
     ## Create bank and appointment classes to help us with data parsing
@@ -96,14 +82,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     ## Get closest 3 banks
     ###############################################################
     def get_closest_3_banks_list(lat1, lon1):
-        url = 'https://raw.githubusercontent.com/ku222/azure_functions/master/NavigationBranchFormatter/branch.txt' 
-        urlData = requests.get(url).content
-        df = pd.read_csv(io.StringIO(urlData.decode('utf-8')), sep='\t')
+        db_dict = query_database("SELECT * FROM [dbo].[BranchWithGeo]")
+        bank_rows = db_dict['ResultSets']['Table1']
         banks_list = []
-        for (i, row) in df.iterrows():
+        for row in bank_rows:
             # Create bank
+            # Format Closing time
+            splitted = row['Closes'].split(':')
+            closing_time = splitted[0] + splitted[1]
             bank = Bank(name=row['AddressLine'], lat=row['Latitude'], lon=row['Longitude'],
-                        opening_time=row['Opens'], closing_time=row['Closes'])
+                        opening_time=row['Opens'], closing_time=closing_time)
             # Create appointments
             appointment1 = Appointment(start_time="09:00", end_time="10:00")
             appointment2 = Appointment(start_time="10:30", end_time="11:00")
@@ -133,7 +121,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             card.add(Column(width=2))
             card.add(TextBlock(text="BANK OF LINGFIELD BRANCH"))
             card.add(TextBlock(text=bank.name, size="ExtraLarge", weight="Bolder", spacing="None"))
-            card.add(TextBlock(text="5 stars", isSubtle=True, spacing="None"))
+            card.add(TextBlock(text=u"\u2605"*4+u"\u2606", spacing="None"))
             card.add(TextBlock(text=f"Opens at {str(bank.opening_time).zfill(4)}", isSubtle=True, spacing="None"))
             card.add(TextBlock(text=f"Closes at {str(bank.closing_time).zfill(4)}", isSubtle=True, spacing="None"))
             card.add(TextBlock(text="**Matt H. said** Im compelled to give this place 5 stars due to the number of times Ive chosen to bank here this past year!", size="Small", wrap="true"))
@@ -152,29 +140,30 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             card.add(ActionSet())
 
             # First add our "View on Map" button
-            card.add(ActionOpenUrl(url=f"https://www.google.com/maps/@{bank.lat},{bank.lon},5.33z", title="View on Map"), is_action=True)
+            card.add(ActionOpenUrl(url=f"https://cloudwars2composerdev.z22.web.core.windows.net/?lat={bank.lat}&lon={bank.lon}", title="View on Map", style="positive"), is_action=True)
             
             # create expandible card to show all our bank-specific appointment items
-            card.add(ActionShowCard(title="View Appointments"), is_action=True)
+            card.add(ActionShowCard(title="View Open Appointment Slots", style="positive"), is_action=True)
             
             # Save a checkpoint at this level to come back to later
             action_showcard_level = card.save_level()
 
             # now loops over appointment items and add them
             for appointment in bank.appointments:
-                card.add(ColumnSet())
+                card.add(ColumnSet(separator="true"))
                 
                 # Add our slots, start, end times
-                row_items = ["Slot", appointment.start_time, appointment.end_time]
+                row_items = [f"From: {appointment.start_time}", f"To: {appointment.end_time}"]
                 for item in row_items:
-                    card.add(Column(style="emphasis", verticalContentAlignment="Center"))
+                    card.add(Column(verticalContentAlignment="Center"))
                     card.add(TextBlock(text=item, horizontalAlignment="Center"))
                     card.up_one_level() # Back to column set level
 
                 # Add the "Book This!" button, in the final column
-                card.add(Column(style="emphasis", verticalContentAlignment="Center"))
+                card.add(Column(verticalContentAlignment="Center"))
                 card.add(ActionSet())
-                card.add(ActionSubmit(title="Book!", data={"Appt": f"({appointment.start_time}, {appointment.end_time})"}), is_action=True)
+                book_button_data = {"branch_name": bank.name, "from_time": appointment.start_time, "to_time": appointment.end_time}
+                card.add(ActionSubmit(title="Book!", style="positive", data=book_button_data), is_action=True)
                 card.load_level(action_showcard_level) # back to showcard's body
             
             # Go back to the main body of the card, ready for next branch
@@ -185,7 +174,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     ###############################################################
     ## MAIN
     ###############################################################
-    (lat, lon) = get_lat_lon_from_address(address)
+    # Call our functions above sequentially
+    response = query_azure_maps(address)
+    (lat, lon) = extract_coordinates(response)
     banks_list = get_closest_3_banks_list(lat1=lat, lon1=lon)
     card = create_card(banks_list)
     

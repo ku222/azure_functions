@@ -4,58 +4,12 @@
 import requests
 import json
 
-intent = "display"
-data = "{\r\n  \"OutputParameters\": {},\r\n  \"ResultSets\": {\r\n    \"Table1\": [\r\n      {\r\n        \"card_id\": \"V00000001\",\r\n        \"disp_id\": \"D00000009\",\r\n        \"type\": \"VISA Infinite\",\r\n        \"year\": 2018,\r\n        \"month\": \"10\",\r\n        \"day\": \"16\",\r\n        \"fulldate\": \"2018-10-16T00:00:00\",\r\n        \"Pin_Code\": 7650,\r\n        \"Status\": \"Inactive\"\r\n      },\r\n      {\r\n        \"card_id\": \"V00000002\",\r\n        \"disp_id\": \"D00000019\",\r\n        \"type\": \"VISA Signature\",\r\n        \"year\": 2018,\r\n        \"month\": \"3\",\r\n        \"day\": \"13\",\r\n        \"fulldate\": \"2018-03-13T00:00:00\",\r\n        \"Pin_Code\": 7916,\r\n        \"Status\": \"Lost/Stolen\"\r\n      },\r\n      {\r\n        \"card_id\": \"V00000003\",\r\n        \"disp_id\": \"D00000041\",\r\n        \"type\": \"VISA Infinite\",\r\n        \"year\": 2015,\r\n        \"month\": \"9\",\r\n        \"day\": \"3\",\r\n        \"fulldate\": \"2015-09-03T00:00:00\",\r\n        \"Pin_Code\": 3467,\r\n        \"Status\": \"Active\"\r\n      }\r\n    ]\r\n  }\r\n}"
 DEPLOYED_URL = 'https://cloudwars2functionapp.azurewebsites.net/api/ManageCards?code=yvmb8yIHQMQfzHhqa9/THqgkM5xauddovKZdL0VrhLIpsVx/HXzhuw=='
-json_payload = {'intent': intent, 'data': data}
+json_payload = {"account_id": "A00003088"}
 response = requests.post(url=DEPLOYED_URL, json=json_payload)
 response.text
 
 #%% Example payload in dict form
-
-data = {
-"OutputParameters": {},
-"ResultSets": {
-"Table1": [
-  {
-    "card_id": "V00000001",
-    "disp_id": "D00000009",
-    "type": "VISA Infinite",
-    "year": 2018,
-    "month": "10",
-    "day": "16",
-    "fulldate": "2018-10-16T00:00:00",
-    "Pin_Code": 7650,
-    "Status": "Frozen"
-  },
-]
-}
-}
-  {
-    "card_id": "V00000002",
-    "disp_id": "D00000019",
-    "type": "VISA Signature",
-    "year": 2018,
-    "month": "3",
-    "day": "13",
-    "fulldate": "2018-03-13T00:00:00",
-    "Pin_Code": 7916,
-    "Status": "Lost/Stolen"
-  },
-  {
-    "card_id": "V00000003",
-    "disp_id": "D00000041",
-    "type": "VISA Infinite",
-    "year": 2015,
-    "month": "9",
-    "day": "3",
-    "fulldate": "2015-09-03T00:00:00",
-    "Pin_Code": 3467,
-    "Status": "Active"
-  }
-]
-}
-}
 
 
 #%%
