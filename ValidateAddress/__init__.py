@@ -19,6 +19,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         "state": req_body.get('state'),
         "zipcode": req_body.get('zipcode')
     }
+    language = req_body.get('language')
 
     def is_empty(address_dict):
         m1 = '' if address_dict['address_line1'] else "First address line"
@@ -79,7 +80,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             return [address_result_to_dict(address_result) for address_result in point_addresses]
         return [address_result_to_dict(address_result) for address_result in all_address_results]
     
-    def create_address_selection_card(array_of_address_dicts):
+    def create_address_selection_card(array_of_address_dicts, language):
         card = AdaptiveCard(backgroundImage="https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png")
         card.add(Container(backgroundImage="https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"))
         container_level = card.save_level()
@@ -91,14 +92,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     "items---",
                     ColumnSet(separator="true", spacing="medium"),
                         Column(width=7, verticalContentAlignment="center"),
-                            TextBlock(text=address_dict['free_form'], wrap="true"),
+                            TextBlock(text=address_dict['free_form'], wrap="true", dont_translate=True),
                             "<",
                         Column(width=1),
                             "<",
                         Column(width=2, verticalContentAlignment="center"),
                             ActionSet(),
                                 "action---",
-                                ActionSubmit(title=u'\u2714', style="positive", data=address_dict),
+                                ActionSubmit(title=u'\u2714', style="positive", data=address_dict, dont_translate=True),
                 ])
                 card.load_level(container_level)
         
@@ -107,7 +108,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         
         if valid_counter == 0:
             return False
-        return card.to_json()
+        return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
 
     ### Call our functions above sequentially
 
@@ -127,7 +128,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     address_query = ' '.join(address_dict.values())
     response = query_azure_maps(address_query)
     array_of_address_dicts = parse_azuremaps_response(response)
-    result = create_address_selection_card(array_of_address_dicts)
+    result = create_address_selection_card(array_of_address_dicts, language)
     
     if not result:
         return func.HttpResponse(body="no potentially matching addresses were found", status_code=400)

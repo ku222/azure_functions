@@ -43,11 +43,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # Now record a transaction
         date_today = "CURRENT_TIMESTAMP"
         trn_no = 'PIG' + ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890', k=10))
-        # Add into normal transaction table
-        query = f"INSERT INTO [dbo].[Transaction] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance})"
-        query_database(query)
         # Add into category transaction table
-        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE')"
+        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE', 'BOT')"
         query_database(query)
 
     # Update piggybank table with amount

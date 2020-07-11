@@ -17,6 +17,7 @@ import requests
 import json
 
 account_id = 'A00003088'
+language = "ms"
 
 def query_database(query):
     logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
@@ -37,51 +38,46 @@ FROM (
         GROUP BY temp_table.category
     ) AS temp_table2 
 '''
-
 query = query.replace('\n', ' ')
 result = query_database(query)
 monthly_average = result["ResultSets"]["Table1"][0]["average_spending"]
 
-#%%
+monthly_average = round(monthly_average, 2)
 
-blue_background = "https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png"
-whistle_icon = "https://i.ibb.co/vH4BM82/referee.png"
+def create_card(monthly_average, language):
+    blue_background = "https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png"
+    whistle_icon = "https://i.ibb.co/vH4BM82/referee.png"
 
-card = AdaptiveCard(backgroundImage=blue_background)
-card.add([
-    Image(url=whistle_icon, height="90px", horizontalAlignment="center", spacing="medium"),
-    TextBlock(text="Set Monthly Budget Target", spacing="Large", color="light", size="Large", weight="Bolder", horizontalAlignment="center"),
-    ColumnSet(spacing="small"),
-        Column(width=1), 
-            "<",
-        Column(width=15),
-            TextBlock(text="Excluding committed costs, whats the most you want to spend this month?", color="light", wrap="true", size="medium", horizontalAlignment="center"),
-            Container(style="default", spacing="Large"),
-                Container(spacing="large"),
-                    "<",
-                TextBlock(text="Current Monthly Average Spend", size="medium", horizontalAlignment="center"),
-                TextBlock(text=f"${monthly_average:,}", size="ExtraLarge", weight="bolder", horizontalAlignment="center"),
-                TextBlock(text="Enter maximum spend", spacing="medium", isSubtle="true"),
-                InputNumber(ID="amount", value=800, separator="true"),
-                ActionSet(),
-                    "actions",
-                    ActionSubmit(title="Set Spend Target", style="positive"),
+    card = AdaptiveCard(backgroundImage=blue_background)
+    card.add([
+        Image(url=whistle_icon, height="90px", horizontalAlignment="center", spacing="medium"),
+        TextBlock(text="Set Monthly Budget Target", spacing="Large", color="light", size="Large", weight="Bolder", horizontalAlignment="center"),
+        ColumnSet(spacing="small"),
+            Column(width=1), 
+                "<",
+            Column(width=15),
+                TextBlock(text="Excluding committed costs, whats the most you want to spend this month?", color="light", wrap="true", size="medium", horizontalAlignment="center"),
+                Container(style="default", spacing="Large"),
+                    Container(spacing="large"),
+                        "<",
+                    TextBlock(text="Current Monthly Average Spend", size="medium", horizontalAlignment="center"),
+                    TextBlock(text=f"${monthly_average:,}", size="ExtraLarge", weight="bolder", horizontalAlignment="center", dont_translate=True),
+                    TextBlock(text="Enter maximum spend", spacing="medium", isSubtle="true"),
+                    InputNumber(ID="amount", value=800, separator="true", dont_translate=True),
+                    ActionSet(),
+                        "actions",
+                        ActionSubmit(title="Set Spend Target", style="positive"),
+                        "<",
                     "<",
                 "<",
+            "items",
+            Column(width=1),
+                "<",
             "<",
-        "items",
-        Column(width=1),
-            "<",
-        "<",
-    ])
+        ])
 
-card.to_json()
+    return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
 
-
-#%%
-
-import numpy as np 
-
-a = np.random.rand(64, 56)
-
-a[:,:]
+# Return result
+result = create_card(monthly_average, language)
+result

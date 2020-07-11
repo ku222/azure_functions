@@ -19,6 +19,8 @@ account_id = 'A00003088'
 from_time = '09:00'
 to_time = '10:30'
 branch_name = "South Side Branch"
+language = 'ms'
+
 
 def query_database(query):
     logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
@@ -26,7 +28,7 @@ def query_database(query):
     response = requests.post(url=logic_app_url, json=body)
     return json.loads(response.content)
 
-def create_appointment_form(data):
+def create_appointment_form(data, from_time, to_time, branch_name, language):
     # Dict mapping database names to pretty names
     DB_TO_CARD = {
     'first': 'First Name',
@@ -47,12 +49,12 @@ def create_appointment_form(data):
     profile_dict = names_dict
     
     # Initialize card
-    card = AdaptiveCard(backgroundImage="https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-030-happy-fisher.png")
+    card = AdaptiveCard(backgroundImage="https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png")
 
     # Add Title Container
     card.add(Container(backgroundImage="https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"))
-    card.add(TextBlock(text=f"Appointment Booking", wrap="true", weight="bolder", size="Large", horizontalAlignment="center"))
-    card.add(TextBlock(text=f"at {branch_name}", wrap="true", weight="bolder", size="Large", horizontalAlignment="center"))
+    card.add(TextBlock(text=f"Appointment Booking at", wrap="true", weight="bolder", size="Large", horizontalAlignment="center"))
+    card.add(TextBlock(text=branch_name, wrap="true", weight="bolder", size="Large", horizontalAlignment="center", dont_translate=True))
     card.up_one_level()
     
     # Add From + To container
@@ -62,13 +64,13 @@ def create_appointment_form(data):
             Column(),
                 RichTextBlock(horizontalAlignment="center"),
                     TextRun(text="From: "),
-                    TextRun(text=from_time, size="medium", weight="bolder"),
+                    TextRun(text=from_time, size="medium", weight="bolder", dont_translate=True),
                     "<",
                 "<",
             Column(),
                 RichTextBlock(horizontalAlignment="center"),
                     TextRun(text="To: "),
-                    TextRun(text=to_time, size="medium", weight="bolder"),
+                    TextRun(text=to_time, size="medium", weight="bolder", dont_translate=True),
                     "<",
                 "<",
             "<",
@@ -90,7 +92,7 @@ def create_appointment_form(data):
                     TextBlock(text=pretty_name, weight="Bolder"),
                     "<",
                 Column(width=2, verticalContentAlignment="center"),
-                    InputText(ID=pretty_name, value=current_value),
+                    InputText(ID=pretty_name, value=current_value, dont_translate=True),
         ])
         card.load_level(container_level)
     
@@ -109,17 +111,16 @@ def create_appointment_form(data):
     # Finish by adding update action button
     card.back_to_top()
     card.add(ActionSubmit(title="Book Appointment!", style="positive", data={"action": "book"}), is_action=True)
-    
-    return card.to_json()
+    card.add(ActionSubmit(title="Cancel", style="destructive", data={"action": "cancel"}), is_action=True)
+    return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
 
 # Retrieve account data from database
 db_response = query_database(f"SELECT * FROM [dbo].[Profile] WHERE account_id = '{account_id}'")
 data = db_response["ResultSets"]["Table1"][0]
 
 # Create card
-result = create_appointment_form(data)
+result = create_appointment_form(data=data, from_time=from_time, to_time=to_time, branch_name=branch_name, language=language)
 
 #%%
-
 
 result

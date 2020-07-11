@@ -12,6 +12,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # Try retrieve params
     req_body = req.get_json()
     account_id = req_body.get('account_id')
+    language = req_body.get('language')
     
     def query_database(query):
         logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
@@ -21,7 +22,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
     data = query_database(f"SELECT TOP 3 * FROM [dbo].[Card]")
     
-    def display_cards(data):
+    def display_cards(data, language):
         adaptive = AdaptiveCard()
         cards = data["ResultSets"]["Table1"]
 
@@ -34,11 +35,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 Container(backgroundImage=backgroundImage_url, spacing="large", separator="true"),
                     ColumnSet(),
                         Column(),
-                            TextBlock(text=card["card_id"], color=font_color),
-                            TextBlock(text=card["type"], size="ExtraLarge", weight="Bolder", color=font_color),
+                            TextBlock(text=card["card_id"], color=font_color, dont_translate=True),
+                            TextBlock(text=card["type"], size="ExtraLarge", weight="Bolder", color=font_color, dont_translate=True),
                             TextBlock(text=f"Status: {card['Status']}", size="medium", weight="Bolder", color=font_color),
                             TextBlock(text=f"Expires {card['month']}-{card['day']}-{card['year']}", color=font_color),
-                            TextBlock(text=f"PIN: {card['Pin_Code']}", color=font_color),
+                            TextBlock(text=f"PIN: {card['Pin_Code']}", color=font_color, dont_translate=True),
                             "<",
                         Column(),
                             Image(url="https://brokerchooser.com/uploads/images/digital-banks/n26-review-bank-card.png"),
@@ -59,7 +60,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "^"
             ])
             
-        return adaptive.to_json(version="1.1")
+        return adaptive.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
     
-    result = display_cards(data)
+    result = display_cards(data, language)
     return func.HttpResponse(body=result, status_code=200)

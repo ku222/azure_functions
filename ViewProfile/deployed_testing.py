@@ -16,6 +16,7 @@ import requests
 import json
 
 account_id = 'A00000001'
+language = 'ms'
 
 
 def query_database(query):
@@ -24,7 +25,7 @@ def query_database(query):
     response = requests.post(url=logic_app_url, json=body)
     return json.loads(response.content)
 
-def display_profile(data):
+def display_profile(data, language):
     # Dict mapping database names to pretty names
     DB_TO_CARD = {
     'sex': 'Sex',
@@ -42,7 +43,6 @@ def display_profile(data):
     'job': 'Occupation',
     'marital': 'Marital Status',
     'education': 'Highest Education',
-    'contact': 'Contact Type',
     'email': 'Email Address'
     }
     
@@ -57,13 +57,17 @@ def display_profile(data):
     profile_dict = names_dict
     
     # Initialize card
-    card = AdaptiveCard()
+    card = AdaptiveCard(backgroundImage="https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png")
+    card.add(Container(backgroundImage="https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"))
+    container_level = card.save_level()
     for (raw_field_name, current_value) in profile_dict.items():
         # prettify name
         pretty_name = DB_TO_CARD.get(raw_field_name)
         # prettify current value
         if type(current_value) == str:
             current_value = current_value.title()
+        if raw_field_name == 'state':
+            current_value = current_value.upper()
         # clean up date if its a date
         if pretty_name == "Date of Birth":
             current_value = current_value.split('T')[0]
@@ -76,23 +80,27 @@ def display_profile(data):
                         TextBlock(text=pretty_name, weight="Bolder"),
                         "<",
                     Column(),
-                        TextBlock(text=current_value, isSubtle="true"),
-            "^"
+                        TextBlock(text=current_value, isSubtle="true", wrap="true", dont_translate=True),
         ])
-
-        # Return to main body again
-        card.back_to_top()
-        
-    # Finish by adding update action button
-    card.add(Container(spacing="ExtraLarge", separator="true"))
-    card.up_one_level()
-    card.add(ActionSubmit(title="Update Profile", data={"action": "update"}), is_action=True)
+        card.load_level(container_level)
     
-    return card.to_json()
+    # Finish by adding update action button
+    card.back_to_top()
+    card.add(Container(spacing="medium", separator="true"))
+    card.up_one_level()
+    card.add(ActionSubmit(title="Update My Profile", style="positive", data={"action": "update"}), is_action=True)
+    
+    return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
 
 # Retrieve account data from database
 db_response = query_database(f"SELECT * FROM [dbo].[Profile] WHERE account_id = '{account_id}'")
 data = db_response["ResultSets"]["Table1"][0]
 
 # Create card
-result = display_profile(data)
+result = display_profile(data, language)
+
+
+#%%
+result
+#%%
+

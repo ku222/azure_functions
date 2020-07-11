@@ -14,6 +14,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     req_body = req.get_json()
     account_id = req_body.get('account_id')
     budget_target = req_body.get('budget_target')
+    language = req_body.get('language')
     
     #Convert to float
     budget_target = float(budget_target)
@@ -66,7 +67,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     category_percentages = {k:round(v/sum_categories, 2) for (k,v) in category_averages.items()}
     category_percentages = {k: v for k, v in sorted(category_percentages.items(), key=lambda item: item[1], reverse=True)}
     
-    def create_card(budget_target, max_bar_length=50):
+    def create_card(budget_target, language, max_bar_length=50):
         card = AdaptiveCard(backgroundImage=blue_background)
         card.add(Container(backgroundImage=white_background))
         container_level = card.save_level()
@@ -92,13 +93,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                 TextBlock(text="Current", color="attention", size="small"),
                                 "<",
                             Column(width=3, verticalContentAlignment="top"),
-                                TextBlock(text=f"{chr(9608)*num_units}", color="attention", size="small"),
+                                TextBlock(text=f"{chr(9608)*num_units}", color="attention", size="small", dont_translate=True),
                                 "<",
                             Column(width=1, verticalContentAlignment="top"),
-                                TextBlock(text=f"{int(perc*100)}%"),
+                                TextBlock(text=f"{int(perc*100)}%", dont_translate=True),
                                 "<",
                             Column(width=1, verticalContentAlignment="top"),
-                                TextBlock(text=f"${average:,}"),
+                                TextBlock(text=f"${average:,}", dont_translate=True),
                                 "<",
                             "<",
                         ColumnSet(),
@@ -106,12 +107,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                 TextBlock(text="Target", color="accent", size="small"),
                                 "<",
                             Column(width=3, verticalContentAlignment="top"),
-                                TextBlock(text=f"{chr(9608)*target_units}", color="accent", size="small"),
+                                TextBlock(text=f"{chr(9608)*target_units}", color="accent", size="small", dont_translate=True),
                                 "<",
                             Column(width=1, verticalContentAlignment="top"),
                                 "<",
                             Column(width=1, verticalContentAlignment="top"),
-                                TextBlock(text=f"${int(perc*budget_target):,}"),
+                                TextBlock(text=f"${int(perc*budget_target):,}", dont_translate=True),
                                 "<",
                             "<",
                         "<",
@@ -123,7 +124,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         TextBlock(text="Target: $", horizontalAlignment="left", color="accent", size="small"),
                         "<",
                     Column(width=5, verticalContentAlignment="center"),
-                        InputNumber(ID=category, value=str(int(perc*budget_target))),
+                        InputText(ID=category, value=str(int(perc*budget_target)), dont_translate=True),
                         "<",
             ])
         # Now add global submit
@@ -131,10 +132,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         card.add(ActionSubmit(title="Set Category Targets", style="positive"), is_action="true")
         
         # Serialize and return
-        return card.to_json()
+        return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
     
     # Create card
-    result = create_card(budget_target)
+    result = create_card(budget_target, language)
     return func.HttpResponse(body=result, status_code=200)
 
 

@@ -13,8 +13,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     city = req_body.get('city')
     state = req_body.get('state')
     zipcode = req_body.get('zipcode')
+    language = req_body.get('language')
 
-    def create_card():
+    def create_card(language):
         # Params
         fields = (address_line1, address_line2, city, state, zipcode)
         field_names = ('Street Address Line 1', 'Street Address Line 2', 'City', 'State', 'Zip Code')
@@ -30,12 +31,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             card.add(RichTextBlock(separator="true", spacing="medium"))
             card.add(TextRun(text=field_name, color="light", weight="bolder"))
             if required:
-                card.add(TextRun(text="*", color="attention", weight="bolder"))
+                card.add(TextRun(text="*", color="attention", weight="bolder", dont_translate=True))
             card.up_one_level()
             if field: # if field has value passed
-                card.add(InputText(ID=ID, value=field))
+                card.add(InputText(ID=ID, value=field, dont_translate=True))
             else:
-                card.add(InputText(ID=ID, placeholder=placeholder))
+                card.add(InputText(ID=ID, placeholder=placeholder, dont_translate=True))
 
         # Add other empty column to make everything left-aligned
         card.up_one_level()
@@ -52,7 +53,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         card.add(ActionSet(spacing="small"))
         card.add(ActionSubmit(title="Submit!", style="positive"), is_action=True)
         
-        return card.to_json()
+        return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
         
-    result = create_card()
+    result = create_card(language)
     return func.HttpResponse(body=result, status_code=200)

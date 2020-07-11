@@ -11,6 +11,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     req_body = req.get_json()
     account_id = req_body.get('account_id')
+    language = req_body.get('language')
             
     if not account_id:
         return func.HttpResponse(body='Account ID missing', status_code=400)
@@ -21,7 +22,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         response = requests.post(url=logic_app_url, json=body)
         return json.loads(response.content)
     
-    def modify_profile(data):
+    def modify_profile(data, language):
         # Dict mapping database names to pretty names
         DB_TO_CARD = {
         'sex': 'Sex',
@@ -74,7 +75,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     ColumnSet(),
                         Column(),
                             TextBlock(text=pretty_name, weight="Bolder"),
-                            TextBlock(text=current_value, isSubtle="true"),
+                            TextBlock(text=current_value, isSubtle="true", dont_translate=True),
                             "<",
                         Column()
             ])
@@ -104,12 +105,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         card.up_one_level()
         card.add(ActionSubmit(title="Submit All", style="positive"), is_action=True)
         
-        return card.to_json()
+        return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
     
     # Retrieve account data from database
     db_response = query_database(f"SELECT * FROM [dbo].[Profile] WHERE account_id = '{account_id}'")
     data = db_response["ResultSets"]["Table1"][0]
     
-    result = modify_profile(data)
+    result = modify_profile(data, language)
     return func.HttpResponse(body=result, status_code=200)
 

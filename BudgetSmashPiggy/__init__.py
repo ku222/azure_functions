@@ -15,6 +15,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     req_body = req.get_json()
     account_id = req_body.get('account_id')
     piggybank_name = req_body.get('piggybank_name')
+    language = req_body.get('language')
    
     def query_database(query):
         logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
@@ -43,42 +44,43 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # Now record a transaction
         date_today = "CURRENT_TIMESTAMP"
         trn_no = 'PIG' + ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890', k=10))
-        # Add into normal transaction table
-        query = f"INSERT INTO [dbo].[Transaction] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance})"
-        query_database(query)
         # Add into category transaction table
-        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE')"
+        query = f"INSERT INTO [dbo].[Transaction_with_category] VALUES ('{trn_no}', '{account_id}', {date_today}, '{transaction_details}', NULL, {date_today}, {0 if operator=='-' else amount}, {amount if operator=='-' else 0}, {new_balance}, 'BANKING', 'COMPLETE', 'BOT')"
         query_database(query)
         
     def delete_piggybank(account_id, piggybank_name):
         query = f"DELETE FROM [dbo].[PiggyBank] WHERE account_id = '{account_id}' AND piggybank_name = '{piggybank_name}'"
         query_database(query)
    
-    def create_card(piggybank_name, piggybank_amount, created_date, date_today):
+    def create_card(piggybank_name, piggybank_amount, created_date, date_today, language):
         blue_background = "https://digitalsynopsis.com/wp-content/uploads/2017/02/beautiful-color-gradients-backgrounds-047-fly-high.png"
         piggy_icon = "https://i.ibb.co/sKfW8Nd/debt.png"
 
         card = AdaptiveCard(backgroundImage=blue_background)
         card.add([
             TextBlock(text=f"Here lies", color="light", size="ExtraLarge", weight="Bolder", horizontalAlignment="center"),
-            TextBlock(text=f"Good Old {piggybank_name} Piggy Bank", color="light", size="Large", wrap="true", horizontalAlignment="center"),
+            RichTextBlock(horizontalAlignment="center"),
+                TextRun(text=f"Good Old ", color="light", size="Large", wrap="true"),
+                TextRun(text=f"{piggybank_name}", color="light", size="Large", wrap="true", dont_translate=True),
+                TextRun(text=f" Piggy Bank", color="light", size="Large", wrap="true"),
+                "<",
             TextBlock(text=f"Who Amounted to ${piggybank_amount:,}", color="light", size="Medium", wrap="true", horizontalAlignment="center"),
             
             ColumnSet(separator="true", spacing="Large"),
                 Column(),
                     TextBlock(text=f"Born", color="light", separator="true", size="Large", weight="bolder", spacing="Large", wrap="true", horizontalAlignment="center"),
-                    TextBlock(text=f"{created_date}", color="light", size="Large", wrap="true", horizontalAlignment="center"),
+                    TextBlock(text=f"{created_date}", color="light", size="Large", wrap="true", horizontalAlignment="center", dont_translate=True),
                     "<",
                 Column(),
                     TextBlock(text=f"Smashed", color="light", size="Large", weight="bolder", spacing="Large", wrap="true", horizontalAlignment="center"),
-                    TextBlock(text=f"{date_today}", color="light", size="Large", wrap="true", horizontalAlignment="center"),
+                    TextBlock(text=f"{date_today}", color="light", size="Large", wrap="true", horizontalAlignment="center", dont_translate=True),
                     "<",
                 "<",
             
             Image(url=piggy_icon, spacing="Large", height="200px", horizontalAlignment="center"),
             
         ])
-        return card.to_json()
+        return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
     
     # Delete piggybank from database
     delete_piggybank(account_id=account_id, piggybank_name=piggybank_name)
@@ -87,6 +89,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     update_balance_and_transactions(account_id=account_id, amount=float(amount), transaction_details=f"Smashed Piggy Bank {piggybank_name}", operator="+")
     
     # Create card
-    result = create_card(piggybank_name=piggybank_name, piggybank_amount=float(amount), created_date=created_date, date_today=date_today)
+    result = create_card(piggybank_name=piggybank_name, piggybank_amount=float(amount), created_date=created_date, date_today=date_today, language=language)
     return func.HttpResponse(body=result, status_code=200)
 

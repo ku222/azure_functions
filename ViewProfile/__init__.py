@@ -12,6 +12,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # Try retrieve account number
     req_body = req.get_json()
     account_id = req_body.get('account_id')
+    language = req_body.get('language')
             
     if not account_id:
         return func.HttpResponse(body='Account ID missing', status_code=400)
@@ -22,7 +23,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         response = requests.post(url=logic_app_url, json=body)
         return json.loads(response.content)
 
-    def display_profile(data):
+    def display_profile(data, language):
         # Dict mapping database names to pretty names
         DB_TO_CARD = {
         'sex': 'Sex',
@@ -77,7 +78,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                             TextBlock(text=pretty_name, weight="Bolder"),
                             "<",
                         Column(),
-                            TextBlock(text=current_value, isSubtle="true", wrap="true"),
+                            TextBlock(text=current_value, isSubtle="true", wrap="true", dont_translate=True),
             ])
             card.load_level(container_level)
         
@@ -85,16 +86,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         card.back_to_top()
         card.add(Container(spacing="medium", separator="true"))
         card.up_one_level()
-        card.add(ActionSubmit(title="Update Profile", style="positive", data={"action": "update"}), is_action=True)
+        card.add(ActionSubmit(title="Update My Profile", style="positive", data={"action": "update"}), is_action=True)
         
-        return card.to_json()
+        return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
 
     # Retrieve account data from database
     db_response = query_database(f"SELECT * FROM [dbo].[Profile] WHERE account_id = '{account_id}'")
     data = db_response["ResultSets"]["Table1"][0]
 
     # Create card
-    result = display_profile(data)
+    result = display_profile(data, language)
 
     return func.HttpResponse(body=result, status_code=200)
 

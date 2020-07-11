@@ -8,24 +8,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # Log to Azure function apps online
     logging.info('Python HTTP trigger function processed a request.')
 
-    # Try retrieve parameters
-    prompt = req.params.get('prompt')
-    placeholder = req.params.get('placeholder')
-    submit_title = req.params.get('submit_title')
+    req_body = req.get_json()
+    prompt = req_body.get('prompt')
+    placeholder = req_body.get('placeholder')
+    submit_title = req_body.get('submit_title')
+    language = req_body.get('language')
     
-    try:
-        req_body = req.get_json()
-    except ValueError:
-        pass
-    else:
-        prompt = req_body.get('prompt')
-        placeholder = req_body.get('placeholder')
-        submit_title = req_body.get('submit_title')
-       
-    if not prompt or not placeholder or not submit_title:
-        return func.HttpResponse(body='One or more parameters missing', status_code=400)
-    
-    def create_card(prompt, placeholder, submit_title):
+    def create_card(prompt, placeholder, submit_title, language):
         card = AdaptiveCard()
         
         card.add([
@@ -37,7 +26,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             ActionSubmit(title=submit_title)
         ])
                         
-        return card.to_json()
+        return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
     
-    result = create_card(prompt, placeholder, submit_title)
+    result = create_card(prompt, placeholder, submit_title, language)
     return func.HttpResponse(body=result, status_code=200)

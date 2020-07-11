@@ -14,64 +14,59 @@ response.text
 
 #%%
 
-import json
-from adaptivecardbuilder import *
+# Try retrieve params
+language = "ms"
 
-data = "{\r\n  \"OutputParameters\": {},\r\n  \"ResultSets\": {\r\n    \"Table1\": [\r\n      {\r\n        \"card_id\": \"V00000001\",\r\n        \"disp_id\": \"D00000009\",\r\n        \"type\": \"VISA Infinite\",\r\n        \"year\": 2018,\r\n        \"month\": \"10\",\r\n        \"day\": \"16\",\r\n        \"fulldate\": \"2018-10-16T00:00:00\",\r\n        \"Pin_Code\": 7650,\r\n        \"Status\": \"Frozen\"\r\n      },\r\n      {\r\n        \"card_id\": \"V00000002\",\r\n        \"disp_id\": \"D00000019\",\r\n        \"type\": \"VISA Signature\",\r\n        \"year\": 2018,\r\n        \"month\": \"3\",\r\n        \"day\": \"13\",\r\n        \"fulldate\": \"2018-03-13T00:00:00\",\r\n        \"Pin_Code\": 7916,\r\n        \"Status\": \"Lost/Stolen\"\r\n      },\r\n      {\r\n        \"card_id\": \"V00000003\",\r\n        \"disp_id\": \"D00000041\",\r\n        \"type\": \"VISA Infinite\",\r\n        \"year\": 2015,\r\n        \"month\": \"9\",\r\n        \"day\": \"3\",\r\n        \"fulldate\": \"2015-09-03T00:00:00\",\r\n        \"Pin_Code\": 3467,\r\n        \"Status\": \"Active\"\r\n      }\r\n    ]\r\n  }\r\n}"
-data = json.loads(data)
-    # Serialize our data into a python dict
-def display_cards(data):
+def query_database(query):
+    logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
+    body = {"intent": "query", "params": [query]}
+    response = requests.post(url=logic_app_url, json=body)
+    return json.loads(response.content)
+
+data = query_database(f"SELECT TOP 3 * FROM [dbo].[Card]")
+
+def display_cards(data, language):
     adaptive = AdaptiveCard()
     cards = data["ResultSets"]["Table1"]
 
     for card in cards:
         font_color = "default"
-        backgroundImage_url = "https://i.dlpng.com/static/png/6774669_preview.png" if card["Status"]=="Frozen" else "https://www.publicdomainpictures.net/pictures/30000/velka/plain-white-background.jpg"
+        backgroundImage_url = "https://i.dlpng.com/static/png/6774669_preview.png" if card["Status"]=="Frozen" else "https://i.pinimg.com/originals/f5/05/24/f50524ee5f161f437400aaf215c9e12f.jpg"
         
         adaptive.add([
             "items----",
             Container(backgroundImage=backgroundImage_url, spacing="large", separator="true"),
                 ColumnSet(),
                     Column(),
-                        TextBlock(text=card["card_id"], color=font_color),
-                        TextBlock(text=card["type"], size="ExtraLarge", weight="Bolder", color=font_color),
+                        TextBlock(text=card["card_id"], color=font_color, dont_translate=True),
+                        TextBlock(text=card["type"], size="ExtraLarge", weight="Bolder", color=font_color, dont_translate=True),
                         TextBlock(text=f"Status: {card['Status']}", size="medium", weight="Bolder", color=font_color),
                         TextBlock(text=f"Expires {card['month']}-{card['day']}-{card['year']}", color=font_color),
-                        TextBlock(text=f"PIN: {card['Pin_Code']}", color=font_color),
+                        TextBlock(text=f"PIN: {card['Pin_Code']}", color=font_color, dont_translate=True),
                         "<",
                     Column(),
                         Image(url="https://brokerchooser.com/uploads/images/digital-banks/n26-review-bank-card.png"),
                         "<",
                     "<",
                     
-                ActionSet(),
-                    "actions ----",
-                    ActionShowCard(title="Manage Card"),
-                        ActionSubmit(title="Reset PIN", data={"card": f"{card['card_id']}", "action": "PIN"}),
-                        ActionSubmit(title="Defrost Card" if card["Status"]=="Frozen" else "Freeze Card",
-                                    data={
-                                        "card": f"{card['card_id']}",
-                                        "action": f"{'unfreeze' if card['Status']=='Frozen' else 'freeze'}"
-                                        }
-                                    ),
+                    ActionSet(),
+                        "actions ----",
+                        ActionShowCard(title="Manage Card"),
+                            ActionSubmit(title="Reset PIN", data={"card": f"{card['card_id']}", "action": "PIN"}, style="positive"),
+                            ActionSubmit(title="Defrost Card" if card["Status"]=="Frozen" else "Freeze Card",
+                                        data={
+                                            "card": f"{card['card_id']}",
+                                            "action": f"{'unfreeze' if card['Status']=='Frozen' else 'freeze'}"
+                                            }
+                                        ,
+                                        style="positive"),
         "^"
         ])
         
-    return adaptive.to_json()
+    return adaptive.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
 
-display_cards(data)
+result = display_cards(data, language)
+
 #%%
 
-{
-    "schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-    "version": "1.2",
-    "type": "AdaptiveCard",
-    "body": [
-        {
-            "type": "Image",
-            "url": "https://brokerchooser.com/uploads/images/digital-banks/n26-review-bank-card.png"
-        }
-    ],
-    "actions": [],
-    "backgroundImage": "https://i.dlpng.com/static/png/6774669_preview.png"
-}
+result

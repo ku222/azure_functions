@@ -2,7 +2,6 @@ import logging
 import azure.functions as func
 from math import sin, cos, sqrt, atan2, radians
 import requests
-import pandas as pd
 import json
 import io
 from adaptivecardbuilder import *
@@ -16,6 +15,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     ###############################################################
     req_body = req.get_json()
     address = req_body.get('address')
+    language = req_body.get('language')
     
     ###############################################################
     ## Get lat+lon from address input using Azure Maps API
@@ -109,7 +109,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     ###############################################################
     ## Programmatically create adaptive card using our home-grown adaptivecardbuilder API
     ###############################################################
-    def create_card(banks_list):
+    def create_card(banks_list, language):
         # initialize our card
         card = AdaptiveCard()
         # loop over branches - each one will have a mini-card to itself
@@ -120,11 +120,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             # First column - bank info
             card.add(Column(width=2))
             card.add(TextBlock(text="BANK OF LINGFIELD BRANCH"))
-            card.add(TextBlock(text=bank.name, size="ExtraLarge", weight="Bolder", spacing="None"))
+            card.add(TextBlock(text=bank.name, size="ExtraLarge", weight="Bolder", spacing="None", dont_translate=True))
             card.add(TextBlock(text=u"\u2605"*4+u"\u2606", spacing="None"))
             card.add(TextBlock(text=f"Opens at {str(bank.opening_time).zfill(4)}", isSubtle=True, spacing="None"))
             card.add(TextBlock(text=f"Closes at {str(bank.closing_time).zfill(4)}", isSubtle=True, spacing="None"))
-            card.add(TextBlock(text="**Matt H. said** Im compelled to give this place 5 stars due to the number of times Ive chosen to bank here this past year!", size="Small", wrap="true"))
+            card.add(TextBlock(text="Matt H.: I'm compelled to give this place 5 stars due to the number of times I've chosen to bank here this past year!", size="Small", wrap="true"))
             
             card.up_one_level() # Back up to column set
             
@@ -169,7 +169,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             # Go back to the main body of the card, ready for next branch
             card.back_to_top()
             
-        return card.to_json()
+        return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
     
     ###############################################################
     ## MAIN
@@ -178,7 +178,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     response = query_azure_maps(address)
     (lat, lon) = extract_coordinates(response)
     banks_list = get_closest_3_banks_list(lat1=lat, lon1=lon)
-    card = create_card(banks_list)
+    card = create_card(banks_list, language)
     
     # Return OK http response
     return func.HttpResponse(body=card, status_code=200)
