@@ -81,10 +81,10 @@ def main(mytimer: func.TimerRequest) -> None:
         base_url="https://api.cognitive.microsofttranslator.com/translate?api-version=3.0"
         translator_key="e8662f21ef0646a8abfab4f692e441ab"
         headers = {
-                "Ocp-Apim-Subscription-Key": translator_key,
-                "Content-Type": "application/json; charset=UTF-8",
-                "Content-Length": str(len(string_list)),
-                }
+            "Ocp-Apim-Subscription-Key": translator_key,
+            "Content-Type": "application/json; charset=UTF-8",
+            "Content-Length": str(len(string_list))
+            }
         # Construct body
         body = [{"Text": text} for text in string_list]
         # Post request, return
@@ -92,10 +92,10 @@ def main(mytimer: func.TimerRequest) -> None:
         # Extract translations
         translated_output = []
         for response_dict in response.json():
-                translations_array = response_dict['translations']
-                first_result = translations_array[0]
-                translated_text = first_result['text']
-                translated_output.append(translated_text)
+            translations_array = response_dict['translations']
+            first_result = translations_array[0]
+            translated_text = first_result['text']
+            translated_output.append(translated_text)
         return translated_output
     
     # Get account IDs
