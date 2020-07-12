@@ -15,65 +15,50 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     ## Retrieve address
     ###############################################################
     req_body = req.get_json()
-    address = req_body.get('address')
+    branch_name = req_body.get('branch_name')
     language = req_body.get('language')
     
-    ###############################################################
-    ## Get lat+lon from address input using Azure Maps API
-    ###############################################################
-    def query_azure_maps(_query_):
-        '''Send query to azure maps service with parameters below'''
-        _format_ = 'json'
-        _subscription_key_ = 'd5vwJomzaZQjWo1BCYXsNyMOm1QHAxZ9Ie-MkszAzrw'
-        _country_set_ = 'US'
-        url = f"https://atlas.microsoft.com/search/address/{_format_}?subscription-key={_subscription_key_}&countrySet={_country_set_}&api-version=1.0&query={_query_}"
-        response = requests.get(url=url)
-        return response
-
-    def extract_coordinates(response):
-        '''Extract the best lat+lon match from the Azure maps response'''
-        locations = [dict_ for dict_ in response.json()['results']]
-        if locations:
-            closest = locations[0]
-            position = closest.get('position')
-            (lat, lon) = position.get('lat'), position.get('lon')
-        return (float(lat), float(lon))
-        
     def query_database(query):
         logic_app_url = "https://prod-20.uksouth.logic.azure.com:443/workflows/c1fa3f309b684ba8aee273b076ee297e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xYEHzRLr2Frof9x9_tJYnif7IRWkdfxGC5Ys4Z3Jkm4"
         body = {"intent": "query", "params": [query]}
         response = requests.post(url=logic_app_url, json=body)
         return json.loads(response.content)
-    
-    ###############################################################
-    ## Create bank and appointment classes to help us with data parsing
-    ###############################################################
+
+    # Create lite class to help with parsing
     class Bank:
         def __init__(self, name, lat, lon, opening_time, closing_time):
             self.name = name
             self.lat = lat
             self.lon = lon
-            self.distance = None
             self.opening_time = opening_time
             self.closing_time = closing_time
             self.appointments = []
             
         def add_appointment(self, appointment):
             self.appointments.append(appointment)
+
+        def similarity(self, str2):
+            str1 = self.name
+            m = len(str1)
+            n = len(str2)
+            lensum = float(m + n)
+            d = []           
+            for i in range(m+1):
+                d.append([i])        
+            del d[0][0]    
+            for j in range(n+1):
+                d[0].append(j)       
+            for j in range(1,n+1):
+                for i in range(1,m+1):
+                    if str1[i-1] == str2[j-1]:
+                        d[i].insert(j,d[i-1][j-1])           
+                    else:
+                        minimum = min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+2)         
+                        d[i].insert(j, minimum)
+            ldist = d[-1][-1]
+            ratio = (lensum - ldist)/lensum
+            return ratio
         
-        def set_distance(self, lat1, lon1):
-            R = 6373.0 # approximate radius of earth in km
-            lat1 = radians(lat1)
-            lon1 = radians(lon1)
-            lat2 = radians(self.lat)
-            lon2 = radians(self.lon)
-            dlon = lon2 - lon1
-            dlat = lat2 - lat1
-            a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-            c = 2 * atan2(sqrt(a), sqrt(1 - a))
-            distance = R * c
-            self.distance = round(distance*0.621371, 2) # convert to miles
-                
     class Appointment:
         def __init__(self, start_time, end_time):
             self.start_time = start_time
@@ -82,10 +67,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             self.start_time = self.start_time[:5]
             self.end_time = self.end_time[:5]
                 
-    ###############################################################
-    ## Get closest 3 banks
-    ###############################################################
-    def get_closest_3_banks_list(lat1, lon1):
+
+    def get_closest_3_banks_list(query_string):
         select_query = "SELECT Branch.Branch_ID, AddressLine, Latitude, Longitude, Opens, Closes, Appt.Start_Time, Appt.End_Time "
         from_query = "FROM [dbo].[BranchWithGeo] AS Branch LEFT JOIN [dbo].[BranchAppointments] AS Appt "
         on_query = "ON Branch.Branch_ID = Appt.Branch_ID"
@@ -105,36 +88,28 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             appointment = Appointment(start_time=row['Start_Time'], end_time=row['End_Time'])
             appointment.format_times()
             bank.add_appointment(appointment)
-            # get distance
-            if not bank.distance:
-                bank.set_distance(lat1=lat1, lon1=lon1)
         
         banks_list = list(bank_dict.values())
-        sorted_banks_list = sorted(banks_list, key=lambda bank: bank.distance, reverse=False)
-        return sorted_banks_list[:3]
-        
-    ###############################################################
-    ## Programmatically create adaptive card using our home-grown adaptivecardbuilder API
-    ###############################################################
+        sorted_by_similarity = sorted(banks_list, key=lambda bank: bank.similarity(query_string), reverse=True)
+        return sorted_by_similarity[:3]
+
+
     def create_card(banks_list, language):
         
+        # Utility time functions
         def to_datetime(hrs_mins):
             return datetime.datetime.strptime(hrs_mins, '%H:%M')
-        
-        # Utility time functions
         def get_hrs_mins():
             now = datetime.datetime.now()
             hrs_mins = f"{now.hour}:{now.minute}"
             return to_datetime(hrs_mins)
-        
         hrs_mins_now = get_hrs_mins()
         
         # initialize our card
         card = AdaptiveCard()
         # loop over branches - each one will have a mini-card to itself
         for bank in banks_list:
-            card.add(TextBlock(text=f"{bank.distance} miles away", separator="true", spacing="large"))
-            card.add(ColumnSet())
+            card.add(ColumnSet(separator="true", spacing="large"))
             
             # First column - bank info
             card.add(Column(width=2))
@@ -194,17 +169,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         if language == 'en':
             return card.to_json()
         return card.to_json(translator_to_lang=language, translator_key="e8662f21ef0646a8abfab4f692e441ab")
-    
-    ###############################################################
-    ## MAIN
-    ###############################################################
-    # Call our functions above sequentially
-    response = query_azure_maps(address)
-    (lat, lon) = extract_coordinates(response)
-    banks_list = get_closest_3_banks_list(lat1=lat, lon1=lon)
-    card = create_card(banks_list, language)
+
+    banks_list = get_closest_3_banks_list(query_string=branch_name)
+    card = create_card(banks_list=banks_list, language=language)
     
     # Return OK http response
     return func.HttpResponse(body=card, status_code=200)
-
 

@@ -15,7 +15,7 @@ def main(req: func.HttpRequest, sendGridMessage: func.Out[str]) -> func.HttpResp
         "to": [{
             "email": email
             }]}],
-        "subject": "Reminder from Bank of Lingfield - Stop spending!",
+        "subject": "Reminder from Bank of Lingfield!",
         "content": [{
             "type": "text/plain",
             "value": email_body}]}
